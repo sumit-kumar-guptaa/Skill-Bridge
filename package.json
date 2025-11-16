@@ -1,0 +1,50 @@
+{
+  "name": "skill-bridge-pro",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "build": "next build",
+    "start": "node server.js",
+    "lint": "next lint",
+    "db:init": "tsx scripts/init-db.ts",
+    "mcp:server": "node --import tsx --no-warnings lib/mcp/skillbridge-server.ts",
+    "mcp:test": "node test-mcp.mjs"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.34.5",
+    "@google/generative-ai": "^0.21.0",
+    "@langchain/core": "^1.0.3",
+    "@langchain/google-genai": "^1.0.0",
+    "@langchain/langgraph": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@neondatabase/serverless": "^1.0.2",
+    "@prisma/client": "^6.19.0",
+    "@prisma/extension-accelerate": "^2.0.2",
+    "@tavily/core": "^0.5.12",
+    "langchain": "^1.0.3",
+    "lucide-react": "^0.446.0",
+    "mermaid": "^11.12.1",
+    "next": "14.2.15",
+    "prisma": "^6.19.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^17.2.3",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.15",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}

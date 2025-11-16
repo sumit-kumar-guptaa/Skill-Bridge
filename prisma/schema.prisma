@@ -1,0 +1,223 @@
+// Prisma Schema for SkillBridge Competitive Coding Platform
+// Uses Prisma Accelerate for edge-optimized database access
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// User model - integrates with Stack Auth
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  username          String?  @unique
+  displayName       String?  @map("display_name")
+  avatarUrl         String?  @map("avatar_url")
+  
+  // Progress tracking
+  totalSolved       Int      @default(0) @map("total_solved")
+  successRate       Decimal  @default(0) @db.Decimal(5, 2) @map("success_rate")
+  currentStreak     Int      @default(0) @map("current_streak")
+  maxStreak         Int      @default(0) @map("max_streak")
+  credits           Int      @default(0)
+  
+  // Competition stats
+  totalCompetitions Int      @default(0) @map("total_competitions")
+  competitionsWon   Int      @default(0) @map("competitions_won")
+  
+  // Timestamps
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  submissions       Submission[]
+  createdRooms      CompetitionRoom[] @relation("RoomCreator")
+  wonRooms          CompetitionRoom[] @relation("RoomWinner")
+  roomParticipants  RoomParticipant[]
+  userProgress      UserProgress[]
+  userAchievements  UserAchievement[]
+  roomMessages      RoomMessage[]
+  
+  @@map("users")
+}
+
+// Problem model
+model Problem {
+  id               Int      @id @default(autoincrement())
+  title            String   @db.VarChar(255)
+  slug             String   @unique @db.VarChar(255)
+  difficulty       String   @db.VarChar(20)
+  description      String   @db.Text
+  examples         Json?
+  constraints      String[]
+  testCases        Json
+  topics           String[]
+  hints            String[]
+  solutionTemplate Json?    @map("solution_template")
+  
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  submissions      Submission[]
+  competitionRooms CompetitionRoom[]
+  userProgress     UserProgress[]
+  
+  @@map("problems")
+}
+
+// Submission model
+model Submission {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  problemId   Int      @map("problem_id")
+  code        String   @db.Text
+  language    String   @db.VarChar(50)
+  status      String   @db.VarChar(50)
+  runtime     Int?
+  memory      Int?
+  testResults Json?    @map("test_results")
+  isAccepted  Boolean  @default(false) @map("is_accepted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([problemId])
+  @@index([createdAt(sort: Desc)])
+  @@map("submissions")
+}
+
+// Competition Room model
+model CompetitionRoom {
+  id               String   @id @db.VarChar(20)
+  problemId        Int?     @map("problem_id")
+  creatorId        String   @map("creator_id")
+  status           String   @default("active") @db.VarChar(20)
+  winnerId         String?  @map("winner_id")
+  startTime        DateTime @default(now()) @map("start_time")
+  endTime          DateTime? @map("end_time")
+  participantCount Int      @default(1) @map("participant_count")
+  createdAt        DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  problem          Problem?  @relation(fields: [problemId], references: [id])
+  creator          User      @relation("RoomCreator", fields: [creatorId], references: [id])
+  winner           User?     @relation("RoomWinner", fields: [winnerId], references: [id])
+  participants     RoomParticipant[]
+  messages         RoomMessage[]
+  
+  @@index([status])
+  @@map("competition_rooms")
+}
+
+// Room Participant model
+model RoomParticipant {
+  id          Int       @id @default(autoincrement())
+  roomId      String    @map("room_id") @db.VarChar(20)
+  userId      String    @map("user_id")
+  username    String    @db.VarChar(255)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+  finalCode   String?   @db.Text @map("final_code")
+  isWinner    Boolean   @default(false) @map("is_winner")
+  
+  // Relations
+  room        CompetitionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+  @@map("room_participants")
+}
+
+// User Progress model
+model UserProgress {
+  id            Int      @id @default(autoincrement())
+  userId        String   @map("user_id")
+  problemId     Int      @map("problem_id")
+  solvedAt      DateTime @default(now()) @map("solved_at")
+  language      String   @db.VarChar(50)
+  executionTime Int?     @map("execution_time")
+  creditsEarned Int      @default(10) @map("credits_earned")
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem       Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, problemId])
+  @@index([userId])
+  @@map("user_progress")
+}
+
+// Achievement model
+model Achievement {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique @db.VarChar(255)
+  description   String?  @db.Text
+  badgeIcon     String?  @db.VarChar(50) @map("badge_icon")
+  criteria      Json?
+  creditsReward Int      @default(0) @map("credits_reward")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  userAchievements UserAchievement[]
+  
+  @@map("achievements")
+}
+
+// User Achievement model (junction table)
+model UserAchievement {
+  id            Int         @id @default(autoincrement())
+  userId        String      @map("user_id")
+  achievementId Int         @map("achievement_id")
+  earnedAt      DateTime    @default(now()) @map("earned_at")
+  
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// Room Message model
+model RoomMessage {
+  id        Int      @id @default(autoincrement())
+  roomId    String   @map("room_id") @db.VarChar(20)
+  userId    String?  @map("user_id")
+  username  String   @db.VarChar(255)
+  message   String   @db.Text
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  room      CompetitionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User?           @relation(fields: [userId], references: [id])
+  
+  @@index([roomId])
+  @@map("room_messages")
+}
+
+// Leaderboard Cache model
+model LeaderboardCache {
+  userId          String   @id @map("user_id")
+  rank            Int?
+  totalCredits    Int      @map("total_credits")
+  problemsSolved  Int      @map("problems_solved")
+  competitionsWon Int      @map("competitions_won")
+  currentStreak   Int      @map("current_streak")
+  updatedAt       DateTime @default(now()) @map("updated_at")
+  
+  @@map("leaderboard_cache")
+}
+

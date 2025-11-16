@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1f3a;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background: #10b981; }
+        .disconnected { background: #ef4444; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .create { background: #f59e0b; color: white; }
+        .join { background: #06b6d4; color: white; }
+        #log {
+            background: #0a0e27;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            min-height: 200px;
+            font-family: monospace;
+        }
+        input {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #374151;
+            background: #0a0e27;
+            color: white;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Socket.IO Connection Test</h1>
+    
+    <div id="status" class="status disconnected">
+        Status: Disconnected
+    </div>
+
+    <div id="socketId" style="margin: 10px 0;">
+        Socket ID: -
+    </div>
+
+    <h2>Test Actions</h2>
+    <button class="create" onclick="testCreateRoom()">Create Room</button>
+    <button class="join" onclick="testJoinRoom()">Join Room</button>
+    <input type="text" id="roomInput" placeholder="Room ID to join" />
+
+    <h2>Event Log</h2>
+    <div id="log"></div>
+
+    <script>
+        const socket = io('http://localhost:3000', {
+            transports: ['websocket', 'polling']
+        });
+
+        const log = (msg) => {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${msg}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        };
+
+        socket.on('connect', () => {
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').textContent = 'Status: Connected ✅';
+            document.getElementById('socketId').textContent = `Socket ID: ${socket.id}`;
+            log('✅ Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').textContent = 'Status: Disconnected ❌';
+            log('❌ Disconnected from server');
+        });
+
+        socket.on('error', (data) => {
+            log(`❌ Error: ${data.message}`);
+        });
+
+        socket.on('room-created', ({ roomId, room }) => {
+            log(`🏠 Room created: ${roomId}`);
+            log(`   Problem ID: ${room.problemId}`);
+            log(`   Participants: ${room.participants.length}`);
+        });
+
+        socket.on('room-joined', ({ room }) => {
+            log(`👥 Joined room: ${room.id}`);
+            log(`   Problem ID: ${room.problemId}`);
+            log(`   Participants: ${room.participants.length}`);
+        });
+
+        socket.on('participant-joined', ({ participant }) => {
+            log(`👤 ${participant.userName} joined the room`);
+        });
+
+        function testCreateRoom() {
+            log('Creating test room...');
+            socket.emit('create-room', {
+                problemId: 1,
+                userId: 'test-user-' + Date.now(),
+                userName: 'Test User'
+            });
+        }
+
+        function testJoinRoom() {
+            const roomId = document.getElementById('roomInput').value.toUpperCase();
+            if (!roomId) {
+                alert('Please enter a Room ID');
+                return;
+            }
+            log(`Joining room: ${roomId}...`);
+            socket.emit('join-room', {
+                roomId: roomId,
+                userId: 'test-user-' + Date.now(),
+                userName: 'Test User 2'
+            });
+        }
+    </script>
+</body>
+</html>

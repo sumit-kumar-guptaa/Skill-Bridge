@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "skillbridge": {
+      "command": "node",
+      "args": [
+        "--import",
+        "tsx",
+        "--no-warnings",
+        "lib/mcp/skillbridge-server.ts"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "description": "SkillBridge comprehensive MCP server for coding practice platform"
+    }
+  }
+}

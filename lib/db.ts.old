@@ -1,0 +1,407 @@
+import { neon } from '@neondatabase/serverless';
+
+// Create SQL connection - throws if DATABASE_URL not set
+export function createSqlConnection() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not defined in environment variables');
+  }
+  return neon(process.env.DATABASE_URL);
+}
+
+// Export singleton instance
+export const sql = createSqlConnection();
+
+// Helper function to initialize database tables
+export async function initializeDatabase() {
+  try {
+    // Users table (extended from Stack Auth)
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        username VARCHAR(100),
+        display_name VARCHAR(255),
+        avatar_url TEXT,
+        total_solved INTEGER DEFAULT 0,
+        success_rate DECIMAL(5,2) DEFAULT 0,
+        current_streak INTEGER DEFAULT 0,
+        max_streak INTEGER DEFAULT 0,
+        credits INTEGER DEFAULT 0,
+        total_competitions INTEGER DEFAULT 0,
+        competitions_won INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Problems table
+    await sql`
+      CREATE TABLE IF NOT EXISTS problems (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
+        difficulty VARCHAR(20) NOT NULL,
+        description TEXT NOT NULL,
+        examples JSONB,
+        constraints TEXT[],
+        test_cases JSONB NOT NULL,
+        topics TEXT[],
+        hints TEXT[],
+        solution_template JSONB,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Submissions table
+    await sql`
+      CREATE TABLE IF NOT EXISTS submissions (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        problem_id INTEGER REFERENCES problems(id) ON DELETE CASCADE,
+        code TEXT NOT NULL,
+        language VARCHAR(50) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        runtime INTEGER,
+        memory INTEGER,
+        test_results JSONB,
+        is_accepted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Competition rooms table
+    await sql`
+      CREATE TABLE IF NOT EXISTS competition_rooms (
+        id VARCHAR(20) PRIMARY KEY,
+        problem_id INTEGER REFERENCES problems(id),
+        creator_id VARCHAR(255) REFERENCES users(id),
+        status VARCHAR(20) DEFAULT 'active',
+        winner_id VARCHAR(255) REFERENCES users(id),
+        start_time TIMESTAMP DEFAULT NOW(),
+        end_time TIMESTAMP,
+        participant_count INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Room participants table
+    await sql`
+      CREATE TABLE IF NOT EXISTS room_participants (
+        id SERIAL PRIMARY KEY,
+        room_id VARCHAR(20) REFERENCES competition_rooms(id) ON DELETE CASCADE,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        username VARCHAR(255) NOT NULL,
+        joined_at TIMESTAMP DEFAULT NOW(),
+        completed BOOLEAN DEFAULT FALSE,
+        completed_at TIMESTAMP,
+        final_code TEXT,
+        is_winner BOOLEAN DEFAULT FALSE,
+        UNIQUE(room_id, user_id)
+      )
+    `;
+
+    // User progress tracking
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_progress (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        problem_id INTEGER REFERENCES problems(id) ON DELETE CASCADE,
+        solved_at TIMESTAMP DEFAULT NOW(),
+        language VARCHAR(50) NOT NULL,
+        execution_time INTEGER,
+        credits_earned INTEGER DEFAULT 10,
+        UNIQUE(user_id, problem_id)
+      )
+    `;
+
+    // Achievements table
+    await sql`
+      CREATE TABLE IF NOT EXISTS achievements (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        description TEXT,
+        badge_icon VARCHAR(50),
+        criteria JSONB,
+        credits_reward INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // User achievements junction table
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_achievements (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
+        achievement_id INTEGER REFERENCES achievements(id) ON DELETE CASCADE,
+        earned_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, achievement_id)
+      )
+    `;
+
+    // Chat messages for competition rooms
+    await sql`
+      CREATE TABLE IF NOT EXISTS room_messages (
+        id SERIAL PRIMARY KEY,
+        room_id VARCHAR(20) REFERENCES competition_rooms(id) ON DELETE CASCADE,
+        user_id VARCHAR(255) REFERENCES users(id),
+        username VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        is_system BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Leaderboard (materialized view alternative)
+    await sql`
+      CREATE TABLE IF NOT EXISTS leaderboard_cache (
+        user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        rank INTEGER,
+        total_credits INTEGER,
+        problems_solved INTEGER,
+        competitions_won INTEGER,
+        current_streak INTEGER,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_submissions_user_id ON submissions(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_submissions_problem_id ON submissions(problem_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_submissions_created_at ON submissions(created_at DESC)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_room_participants_room_id ON room_participants(room_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_room_participants_user_id ON room_participants(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_room_messages_room_id ON room_messages(room_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_competition_rooms_status ON competition_rooms(status)`;
+
+    console.log('✅ Database tables initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    throw error;
+  }
+}
+
+// Helper functions for common queries
+export const db = {
+  // User operations
+  async getUser(userId: string) {
+    const result = await sql`
+      SELECT * FROM users WHERE id = ${userId}
+    `;
+    return result[0] || null;
+  },
+
+  async createUser(userData: {
+    id: string;
+    email: string;
+    username?: string;
+    display_name?: string;
+  }) {
+    const result = await sql`
+      INSERT INTO users (id, email, username, display_name)
+      VALUES (${userData.id}, ${userData.email}, ${userData.username || null}, ${userData.display_name || null})
+      ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        username = EXCLUDED.username,
+        display_name = EXCLUDED.display_name,
+        updated_at = NOW()
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async updateUserProgress(userId: string, updates: {
+    total_solved?: number;
+    success_rate?: number;
+    current_streak?: number;
+    credits?: number;
+  }) {
+    const setClauses = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.total_solved !== undefined) {
+      setClauses.push(`total_solved = $${paramIndex++}`);
+      values.push(updates.total_solved);
+    }
+    if (updates.success_rate !== undefined) {
+      setClauses.push(`success_rate = $${paramIndex++}`);
+      values.push(updates.success_rate);
+    }
+    if (updates.current_streak !== undefined) {
+      setClauses.push(`current_streak = $${paramIndex++}`);
+      values.push(updates.current_streak);
+    }
+    if (updates.credits !== undefined) {
+      setClauses.push(`credits = $${paramIndex++}`);
+      values.push(updates.credits);
+    }
+
+    setClauses.push(`updated_at = NOW()`);
+    values.push(userId);
+
+    const query = `
+      UPDATE users 
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await sql(query, values);
+    return result[0];
+  },
+
+  // Competition room operations
+  async createRoom(roomData: {
+    id: string;
+    problem_id: number;
+    creator_id: string;
+  }) {
+    const result = await sql`
+      INSERT INTO competition_rooms (id, problem_id, creator_id)
+      VALUES (${roomData.id}, ${roomData.problem_id}, ${roomData.creator_id})
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async joinRoom(roomId: string, userId: string, username: string) {
+    const result = await sql`
+      INSERT INTO room_participants (room_id, user_id, username)
+      VALUES (${roomId}, ${userId}, ${username})
+      ON CONFLICT (room_id, user_id) DO NOTHING
+      RETURNING *
+    `;
+    
+    // Update participant count
+    await sql`
+      UPDATE competition_rooms 
+      SET participant_count = (
+        SELECT COUNT(*) FROM room_participants WHERE room_id = ${roomId}
+      )
+      WHERE id = ${roomId}
+    `;
+    
+    return result[0];
+  },
+
+  async setRoomWinner(roomId: string, userId: string) {
+    await sql`
+      UPDATE competition_rooms
+      SET winner_id = ${userId}, end_time = NOW(), status = 'completed'
+      WHERE id = ${roomId}
+    `;
+
+    await sql`
+      UPDATE room_participants
+      SET is_winner = TRUE, completed = TRUE, completed_at = NOW()
+      WHERE room_id = ${roomId} AND user_id = ${userId}
+    `;
+
+    // Award credits
+    const user = await this.getUser(userId);
+    if (user) {
+      await this.updateUserProgress(userId, {
+        credits: user.credits + 20
+      });
+    }
+  },
+
+  async saveRoomMessage(messageData: {
+    room_id: string;
+    user_id?: string;
+    username: string;
+    message: string;
+    is_system?: boolean;
+  }) {
+    const result = await sql`
+      INSERT INTO room_messages (room_id, user_id, username, message, is_system)
+      VALUES (
+        ${messageData.room_id},
+        ${messageData.user_id || null},
+        ${messageData.username},
+        ${messageData.message},
+        ${messageData.is_system || false}
+      )
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  // Submission operations
+  async saveSubmission(submissionData: {
+    user_id: string;
+    problem_id: number;
+    code: string;
+    language: string;
+    status: string;
+    test_results: any;
+    is_accepted: boolean;
+  }) {
+    const result = await sql`
+      INSERT INTO submissions (
+        user_id, problem_id, code, language, status, test_results, is_accepted
+      )
+      VALUES (
+        ${submissionData.user_id},
+        ${submissionData.problem_id},
+        ${submissionData.code},
+        ${submissionData.language},
+        ${submissionData.status},
+        ${JSON.stringify(submissionData.test_results)},
+        ${submissionData.is_accepted}
+      )
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async getUserSubmissions(userId: string, limit = 10) {
+    return await sql`
+      SELECT s.*, p.title as problem_title, p.difficulty
+      FROM submissions s
+      JOIN problems p ON s.problem_id = p.id
+      WHERE s.user_id = ${userId}
+      ORDER BY s.created_at DESC
+      LIMIT ${limit}
+    `;
+  },
+
+  // Leaderboard operations
+  async getLeaderboard(limit = 100) {
+    return await sql`
+      SELECT 
+        u.id,
+        u.username,
+        u.display_name,
+        u.avatar_url,
+        u.credits,
+        u.total_solved,
+        u.competitions_won,
+        u.current_streak,
+        u.success_rate
+      FROM users u
+      WHERE u.total_solved > 0
+      ORDER BY u.credits DESC, u.total_solved DESC
+      LIMIT ${limit}
+    `;
+  },
+
+  // Problem operations
+  async getAllProblems() {
+    return await sql`
+      SELECT id, title, difficulty, description, topics
+      FROM problems
+      ORDER BY id ASC
+    `;
+  },
+
+  async getProblemById(problemId: number) {
+    const result = await sql`
+      SELECT * FROM problems WHERE id = ${problemId}
+    `;
+    return result[0] || null;
+  }
+};

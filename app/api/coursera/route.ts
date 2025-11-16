@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '7012890f18msh1d9e4e7230d6f49p15a8b4jsn2aeb9d5078e9';
 
 export async function GET(request: Request) {

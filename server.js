@@ -1,4 +1,6 @@
 // Custom Server for Next.js with Socket.IO
+require('dotenv').config({ path: '.env.local' });
+
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
@@ -6,7 +8,7 @@ const { Server: SocketIOServer } = require('socket.io');
 const { PrismaClient } = require('@prisma/client');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = '0.0.0.0'; // Listen on all network interfaces
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
@@ -156,15 +158,25 @@ app.prepare().then(() => {
     }
   });
 
-  // Initialize Socket.IO
+  // Initialize Socket.IO with proper CORS configuration
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST'],
-      credentials: true
+      origin: [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://192.168.1.103:3000',
+        'http://192.168.88.1:3000',
+        'http://192.168.144.1:3000',
+        /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:3000$/, // Any local IP
+      ],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization']
     },
     transports: ['websocket', 'polling'],
-    allowEIO3: true
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
   });
 
   io.on('connection', (socket) => {

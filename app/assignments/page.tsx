@@ -681,9 +681,670 @@ const sdeSheetProblems = [
   }
 ];
 
+// ML Engineer Problems
+const mlEngineerProblems = [
+  {
+    id: 101,
+    title: 'Linear Regression Implementation',
+    difficulty: 'Easy',
+    category: 'Machine Learning',
+    description: 'Implement linear regression from scratch using gradient descent. Calculate predictions and mean squared error.',
+    examples: [
+      { input: 'X = [[1], [2], [3]], y = [2, 4, 6]', output: 'slope ≈ 2, intercept ≈ 0', explanation: 'Perfect linear relationship y = 2x' }
+    ],
+    constraints: [
+      'X is a 2D array (n_samples, n_features)',
+      'y is a 1D array (n_samples,)',
+      'Use gradient descent with learning rate 0.01'
+    ],
+    starterCode: {
+      javascript: `// Linear Regression in JavaScript
+function linearRegression(X, y, learningRate = 0.01, epochs = 1000) {
+    // Your code here
+    
+}
+
+// Test
+const X = [[1], [2], [3], [4], [5]];
+const y = [2, 4, 6, 8, 10];
+console.log(linearRegression(X, y));`,
+      python: `import numpy as np
+
+def linear_regression(X, y, learning_rate=0.01, epochs=1000):
+    """
+    Implement linear regression using gradient descent
+    Returns: (weights, bias, mse)
+    """
+    # Your code here
+    pass
+
+# Test
+X = np.array([[1], [2], [3], [4], [5]])
+y = np.array([2, 4, 6, 8, 10])
+weights, bias, mse = linear_regression(X, y)
+print(f"Weights: {weights}, Bias: {bias}, MSE: {mse}")`,
+      java: `// Java implementation
+class LinearRegression {
+    public static void main(String[] args) {
+        // Your code here
+        double[][] X = {{1}, {2}, {3}, {4}, {5}};
+        double[] y = {2, 4, 6, 8, 10};
+        System.out.println("Implement linear regression");
+    }
+}`,
+      cpp: `// C++ implementation
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    // Your code here
+    vector<vector<double>> X = {{1}, {2}, {3}, {4}, {5}};
+    vector<double> y = {2, 4, 6, 8, 10};
+    cout << "Implement linear regression" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'X=[[1],[2],[3]], y=[2,4,6]', expectedOutput: 'MSE < 0.01' },
+      { input: 'X=[[1],[2],[3],[4]], y=[3,5,7,9]', expectedOutput: 'slope ≈ 2' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Input Data X, y] --> B[Initialize Weights]
+    B --> C[Calculate Predictions]
+    C --> D[Compute Loss MSE]
+    D --> E[Gradient Descent]
+    E --> F{Converged?}
+    F -->|No| C
+    F -->|Yes| G[Return Model]`
+  },
+  {
+    id: 102,
+    title: 'K-Means Clustering',
+    difficulty: 'Medium',
+    category: 'Machine Learning',
+    description: 'Implement K-Means clustering algorithm from scratch. Assign points to clusters and update centroids iteratively.',
+    examples: [
+      { input: 'points = [[1,1], [2,1], [8,8], [9,9]], k=2', output: 'clusters: [[1,1],[2,1]] and [[8,8],[9,9]]', explanation: 'Two distinct clusters' }
+    ],
+    constraints: [
+      '1 <= k <= n_samples',
+      'Use Euclidean distance',
+      'Max 100 iterations'
+    ],
+    starterCode: {
+      python: `import numpy as np
+
+def kmeans(X, k, max_iters=100):
+    """
+    K-Means clustering algorithm
+    Returns: (cluster_labels, centroids)
+    """
+    # Your code here
+    pass
+
+# Test
+X = np.array([[1,1], [2,1], [8,8], [9,9], [1,2]])
+labels, centroids = kmeans(X, k=2)
+print(f"Labels: {labels}")
+print(f"Centroids: {centroids}")`,
+      javascript: `function kmeans(X, k, maxIters = 100) {
+    // Your code here
+    
+}
+
+// Test
+const X = [[1,1], [2,1], [8,8], [9,9], [1,2]];
+console.log(kmeans(X, 2));`,
+      java: `// Java K-Means
+class KMeans {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("K-Means clustering");
+    }
+}`,
+      cpp: `// C++ K-Means
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "K-Means clustering" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'X=[[1,1],[2,1],[8,8],[9,9]], k=2', expectedOutput: '2 clusters formed' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Initialize K Centroids] --> B[Assign Points to Nearest Centroid]
+    B --> C[Update Centroids]
+    C --> D{Converged?}
+    D -->|No| B
+    D -->|Yes| E[Return Clusters]`
+  },
+  {
+    id: 103,
+    title: 'Decision Tree Classifier',
+    difficulty: 'Hard',
+    category: 'Machine Learning',
+    description: 'Build a decision tree classifier using information gain (entropy). Implement recursive splitting and prediction.',
+    examples: [
+      { input: 'Features: weather, temperature | Target: play_tennis', output: 'Tree with splits on best features', explanation: 'Maximize information gain' }
+    ],
+    constraints: [
+      'Use entropy for impurity',
+      'Max depth = 5',
+      'Binary classification'
+    ],
+    starterCode: {
+      python: `import numpy as np
+
+class DecisionTree:
+    def __init__(self, max_depth=5):
+        self.max_depth = max_depth
+        self.tree = None
+    
+    def fit(self, X, y):
+        """Build decision tree"""
+        # Your code here
+        pass
+    
+    def predict(self, X):
+        """Make predictions"""
+        # Your code here
+        pass
+
+# Test
+X = np.array([[1, 1], [1, 0], [0, 1], [0, 0]])
+y = np.array([1, 0, 0, 0])
+dt = DecisionTree()
+dt.fit(X, y)
+print(dt.predict([[1, 1]]))`,
+      javascript: `class DecisionTree {
+    constructor(maxDepth = 5) {
+        this.maxDepth = maxDepth;
+    }
+    
+    fit(X, y) {
+        // Your code here
+    }
+    
+    predict(X) {
+        // Your code here
+    }
+}
+
+// Test
+const dt = new DecisionTree();
+console.log(dt);`,
+      java: `// Java Decision Tree
+class DecisionTree {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("Decision Tree");
+    }
+}`,
+      cpp: `// C++ Decision Tree
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "Decision Tree" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'Binary features, binary target', expectedOutput: 'Correct splits' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Root Node] --> B{Best Split Feature?}
+    B --> C[Calculate Entropy]
+    C --> D[Information Gain]
+    D --> E[Split Node]
+    E --> F[Left Child]
+    E --> G[Right Child]
+    F --> H{Leaf?}
+    G --> I{Leaf?}`
+  }
+];
+
+// AI Engineer Problems
+const aiEngineerProblems = [
+  {
+    id: 201,
+    title: 'Neural Network Forward Pass',
+    difficulty: 'Medium',
+    category: 'Deep Learning',
+    description: 'Implement forward propagation for a simple neural network with one hidden layer. Include activation functions.',
+    examples: [
+      { input: 'X = [[0.5, 0.3]], weights, bias', output: 'predictions after sigmoid activation', explanation: 'Forward pass through network' }
+    ],
+    constraints: [
+      'Use sigmoid activation',
+      'Input: (batch_size, features)',
+      'Hidden layer: 4 neurons'
+    ],
+    starterCode: {
+      python: `import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def forward_pass(X, W1, b1, W2, b2):
+    """
+    Forward propagation through neural network
+    X: input (n_samples, n_features)
+    W1: weights layer 1 (n_features, hidden_size)
+    W2: weights layer 2 (hidden_size, output_size)
+    Returns: (hidden_output, final_output)
+    """
+    # Your code here
+    pass
+
+# Test
+X = np.array([[0.5, 0.3]])
+W1 = np.random.randn(2, 4)
+b1 = np.zeros(4)
+W2 = np.random.randn(4, 1)
+b2 = np.zeros(1)
+hidden, output = forward_pass(X, W1, b1, W2, b2)
+print(f"Output: {output}")`,
+      javascript: `function sigmoid(x) {
+    // Your code here
+}
+
+function forwardPass(X, W1, b1, W2, b2) {
+    // Your code here
+}
+
+// Test
+console.log("Implement neural network forward pass");`,
+      java: `// Java Neural Network
+class NeuralNetwork {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("Neural Network");
+    }
+}`,
+      cpp: `// C++ Neural Network
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "Neural Network" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'X shape (1,2), Output shape (1,1)', expectedOutput: 'Value between 0 and 1' }
+    ],
+    mermaidDiagram: `graph LR
+    A[Input Layer] --> B[Hidden Layer]
+    B --> C[Activation Sigmoid]
+    C --> D[Output Layer]
+    D --> E[Final Activation]`
+  },
+  {
+    id: 202,
+    title: 'Transformer Attention Mechanism',
+    difficulty: 'Hard',
+    category: 'NLP',
+    description: 'Implement scaled dot-product attention mechanism used in Transformers. Calculate query, key, value matrices.',
+    examples: [
+      { input: 'Q, K, V matrices', output: 'Attention weights and context', explanation: 'Self-attention computation' }
+    ],
+    constraints: [
+      'Use softmax for attention weights',
+      'Scale by sqrt(d_k)',
+      'd_model = 64'
+    ],
+    starterCode: {
+      python: `import numpy as np
+
+def scaled_dot_product_attention(Q, K, V):
+    """
+    Compute scaled dot-product attention
+    Q: queries (batch, seq_len, d_k)
+    K: keys (batch, seq_len, d_k)
+    V: values (batch, seq_len, d_v)
+    Returns: (context, attention_weights)
+    """
+    # Your code here
+    pass
+
+# Test
+d_k = 64
+Q = np.random.randn(1, 10, d_k)  # batch=1, seq_len=10
+K = np.random.randn(1, 10, d_k)
+V = np.random.randn(1, 10, d_k)
+context, weights = scaled_dot_product_attention(Q, K, V)
+print(f"Context shape: {context.shape}")
+print(f"Attention weights shape: {weights.shape}")`,
+      javascript: `function scaledDotProductAttention(Q, K, V) {
+    // Your code here
+}
+
+// Test
+console.log("Implement transformer attention");`,
+      java: `// Java Transformer Attention
+class Attention {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("Transformer Attention");
+    }
+}`,
+      cpp: `// C++ Transformer Attention
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "Transformer Attention" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'Q,K,V shape (1,10,64)', expectedOutput: 'Context (1,10,64), Weights (1,10,10)' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Query Q] --> B[Q·K^T]
+    C[Key K] --> B
+    B --> D[Scale by sqrt d_k]
+    D --> E[Softmax]
+    E --> F[Attention Weights]
+    F --> G[Weights·V]
+    H[Value V] --> G
+    G --> I[Context Vector]`
+  },
+  {
+    id: 203,
+    title: 'Image Convolution',
+    difficulty: 'Medium',
+    category: 'Computer Vision',
+    description: 'Implement 2D convolution operation for image processing. Apply kernel/filter to detect features.',
+    examples: [
+      { input: 'image (28x28), kernel (3x3)', output: 'feature map (26x26)', explanation: 'Edge detection or blur' }
+    ],
+    constraints: [
+      'No padding (valid convolution)',
+      'Stride = 1',
+      'Handle grayscale images'
+    ],
+    starterCode: {
+      python: `import numpy as np
+
+def convolve2d(image, kernel):
+    """
+    2D Convolution operation
+    image: (height, width)
+    kernel: (k_height, k_width)
+    Returns: feature_map
+    """
+    # Your code here
+    pass
+
+# Test - Edge detection kernel
+image = np.random.rand(28, 28)
+kernel = np.array([[-1, -1, -1],
+                   [-1,  8, -1],
+                   [-1, -1, -1]])
+feature_map = convolve2d(image, kernel)
+print(f"Feature map shape: {feature_map.shape}")`,
+      javascript: `function convolve2d(image, kernel) {
+    // Your code here
+}
+
+// Test
+const image = Array(28).fill().map(() => Array(28).fill(0.5));
+const kernel = [[-1,-1,-1], [-1,8,-1], [-1,-1,-1]];
+console.log(convolve2d(image, kernel));`,
+      java: `// Java Convolution
+class Convolution {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("2D Convolution");
+    }
+}`,
+      cpp: `// C++ Convolution
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "2D Convolution" << endl;
+    return 0;
+}`
+    },
+    testCases: [
+      { input: 'Image (28,28), Kernel (3,3)', expectedOutput: 'Output (26,26)' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Input Image] --> B[Slide Kernel]
+    B --> C[Element-wise Multiply]
+    C --> D[Sum Values]
+    D --> E[Feature Map]`
+  }
+];
+
+// DevOps Engineer Problems
+const devOpsProblems = [
+  {
+    id: 301,
+    title: 'Docker Multi-Stage Build',
+    difficulty: 'Easy',
+    category: 'Containerization',
+    description: 'Create a Dockerfile with multi-stage build to optimize image size for a Node.js application.',
+    examples: [
+      { input: 'Node.js app with dependencies', output: 'Optimized Docker image < 100MB', explanation: 'Separate build and runtime stages' }
+    ],
+    constraints: [
+      'Use alpine base images',
+      'Copy only necessary files',
+      'Remove dev dependencies in production'
+    ],
+    starterCode: {
+      dockerfile: `# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+# Your code here - Install dependencies
+
+# Production stage
+FROM node:18-alpine
+WORKDIR /app
+# Your code here - Copy artifacts and run
+
+EXPOSE 3000
+CMD ["node", "server.js"]`,
+      yaml: `# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production`,
+      java: `// Java - Not applicable for Docker
+// Use Dockerfile above`,
+      cpp: `// C++ - Not applicable for Docker
+// Use Dockerfile above`
+    },
+    testCases: [
+      { input: 'Node.js app', expectedOutput: 'Image size < 100MB' },
+      { input: 'npm install', expectedOutput: 'Only production deps in final image' }
+    ],
+    mermaidDiagram: `graph LR
+    A[Source Code] --> B[Build Stage]
+    B --> C[Install All Dependencies]
+    C --> D[Build Application]
+    D --> E[Production Stage]
+    E --> F[Copy Build Artifacts]
+    F --> G[Install Prod Deps Only]
+    G --> H[Final Image]`
+  },
+  {
+    id: 302,
+    title: 'CI/CD Pipeline Script',
+    difficulty: 'Medium',
+    category: 'CI/CD',
+    description: 'Write a GitHub Actions workflow to build, test, and deploy a web application automatically.',
+    examples: [
+      { input: 'Push to main branch', output: 'Auto deploy to production', explanation: 'Complete CI/CD pipeline' }
+    ],
+    constraints: [
+      'Run tests before deploy',
+      'Build Docker image',
+      'Deploy only on main branch'
+    ],
+    starterCode: {
+      yaml: `# .github/workflows/deploy.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # Your code here
+      # Add steps for:
+      # 1. Setup Node.js
+      # 2. Install dependencies
+      # 3. Run tests
+      # 4. Build Docker image
+      # 5. Push to registry
+      # 6. Deploy to server
+      
+      - name: Deploy
+        run: echo "Deploy to production"`,
+      javascript: `// Alternative: Simple deploy script
+const { exec } = require('child_process');
+
+async function deploy() {
+    // Your deployment logic
+    console.log('Starting deployment...');
+}
+
+deploy();`,
+      java: `// Java - Use YAML workflow above
+// CI/CD configuration in YAML`,
+      cpp: `// C++ - Use YAML workflow above
+// CI/CD configuration in YAML`
+    },
+    testCases: [
+      { input: 'git push origin main', expectedOutput: 'Pipeline triggers automatically' },
+      { input: 'Tests fail', expectedOutput: 'Deployment blocked' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Git Push] --> B[Trigger Pipeline]
+    B --> C[Checkout Code]
+    C --> D[Install Dependencies]
+    D --> E[Run Tests]
+    E --> F{Tests Pass?}
+    F -->|Yes| G[Build Image]
+    F -->|No| H[Fail Pipeline]
+    G --> I[Push to Registry]
+    I --> J[Deploy to Server]`
+  },
+  {
+    id: 303,
+    title: 'Kubernetes Deployment',
+    difficulty: 'Hard',
+    category: 'Orchestration',
+    description: 'Create Kubernetes manifests for deploying a microservice with auto-scaling, health checks, and load balancing.',
+    examples: [
+      { input: 'Microservice app', output: 'K8s deployment with 3 replicas', explanation: 'High availability setup' }
+    ],
+    constraints: [
+      'Use deployment, service, and HPA',
+      'Health checks (liveness & readiness)',
+      'Resource limits defined'
+    ],
+    starterCode: {
+      yaml: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:latest
+        ports:
+        - containerPort: 8080
+        # Your code here
+        # Add: resources, livenessProbe, readinessProbe
+
+---
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  # Your code here
+  # Define service type and ports
+
+---
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  # Your code here
+  # Configure auto-scaling`,
+      bash: `# Apply manifests
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f hpa.yaml
+
+# Verify
+kubectl get pods
+kubectl get svc`,
+      java: `// Java - Use K8s YAML above
+// Kubernetes manifests in YAML`,
+      cpp: `// C++ - Use K8s YAML above
+// Kubernetes manifests in YAML`
+    },
+    testCases: [
+      { input: 'kubectl apply', expectedOutput: 'Deployment created with 3 pods' },
+      { input: 'High CPU load', expectedOutput: 'Auto-scale to max replicas' }
+    ],
+    mermaidDiagram: `graph TD
+    A[Load Balancer] --> B[Service]
+    B --> C[Pod 1]
+    B --> D[Pod 2]
+    B --> E[Pod 3]
+    F[HPA] --> G{CPU > 80%?}
+    G -->|Yes| H[Scale Up]
+    G -->|No| I[Maintain]
+    H --> J[Add More Pods]`
+  }
+];
+
 export default function AssignmentsPage() {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
+  const [category, setCategory] = useState<'SDE' | 'ML' | 'AI' | 'DevOps'>('SDE');
   const [selectedProblem, setSelectedProblem] = useState(sdeSheetProblems[0]);
   const [code, setCode] = useState(sdeSheetProblems[0].starterCode.javascript);
   const [language, setLanguage] = useState('javascript');
@@ -711,6 +1372,28 @@ export default function AssignmentsPage() {
       router.push('/');
     }
   }, [isLoaded, userId, router]);
+
+  // Get current problem set based on category
+  const getCurrentProblems = () => {
+    switch (category) {
+      case 'ML': return mlEngineerProblems;
+      case 'AI': return aiEngineerProblems;
+      case 'DevOps': return devOpsProblems;
+      default: return sdeSheetProblems;
+    }
+  };
+
+  const currentProblems = getCurrentProblems();
+
+  // Update selected problem when category changes
+  useEffect(() => {
+    const problems = getCurrentProblems();
+    setSelectedProblem(problems[0] as any);
+    const firstCode = (problems[0].starterCode as any)[language] || 
+                      (problems[0].starterCode as any).javascript || 
+                      (problems[0].starterCode as any).python || '';
+    setCode(firstCode);
+  }, [category]);
 
   // Load user progress
   useEffect(() => {
@@ -750,9 +1433,9 @@ export default function AssignmentsPage() {
     }
   }, [selectedProblem, activeTab]);
 
-  const handleProblemSelect = (problem: typeof sdeSheetProblems[0]) => {
-    setSelectedProblem(problem);
-    setCode(problem.starterCode[language as keyof typeof problem.starterCode] || problem.starterCode.javascript);
+  const handleProblemSelect = (problem: any) => {
+    setSelectedProblem(problem as any);
+    setCode((problem.starterCode as any)[language] || problem.starterCode.javascript);
     setOutput('');
     setTestResults(null);
     setHint('');
@@ -1033,6 +1716,51 @@ public class Main {
             <Target className="w-6 h-6 text-orange-500" />
             <span className="text-lg font-bold text-white">Problems</span>
           </div>
+          
+          {/* Category Tabs */}
+          <div className="flex items-center gap-2 bg-[#1a1f3a] rounded-lg p-1">
+            <button
+              onClick={() => setCategory('SDE')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+                category === 'SDE' 
+                  ? 'bg-orange-500 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              📊 SDE Sheet
+            </button>
+            <button
+              onClick={() => setCategory('ML')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+                category === 'ML' 
+                  ? 'bg-blue-500 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🤖 ML Engineer
+            </button>
+            <button
+              onClick={() => setCategory('AI')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+                category === 'AI' 
+                  ? 'bg-purple-500 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🧠 AI Engineer
+            </button>
+            <button
+              onClick={() => setCategory('DevOps')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+                category === 'DevOps' 
+                  ? 'bg-green-500 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              ⚙️ DevOps
+            </button>
+          </div>
+          
           <div className="flex items-center gap-4 text-sm">
             <button 
               onClick={() => setShowProblemList(!showProblemList)}
@@ -1066,7 +1794,7 @@ public class Main {
           <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 rounded-lg border border-green-500/30">
             <Award className="w-4 h-4 text-green-400" />
             <span className="text-xs font-semibold text-green-400">
-              {userProgress ? userProgress.totalProblemsSolved : 0}/{sdeSheetProblems.length}
+              {userProgress ? userProgress.totalProblemsSolved : 0}/{currentProblems.length}
             </span>
           </div>
           {userId && userProgress && userProgress.dailyStreak.currentStreak > 0 && (
@@ -1087,7 +1815,7 @@ public class Main {
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-gray-300">Problem Set</h2>
-              <span className="text-xs text-gray-500">{sdeSheetProblems.length} problems</span>
+              <span className="text-xs text-gray-500">{currentProblems.length} problems</span>
             </div>
             <input
               type="text"
@@ -1096,7 +1824,7 @@ public class Main {
             />
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {sdeSheetProblems.map((problem, idx) => (
+            {currentProblems.map((problem, idx) => (
               <button
                 key={problem.id}
                 onClick={() => handleProblemSelect(problem)}

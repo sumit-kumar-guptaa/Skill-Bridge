@@ -55,7 +55,7 @@ const CAREER_DATA: Record<string, any> = {
 
 // Initialize Gemini 2.0 Flash with LangChain
 function getGeminiModel() {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI;
   
   if (!apiKey) {
     throw new Error('Gemini API key not configured');
@@ -283,9 +283,9 @@ MARKDOWN: Clear structure.`;
   // Add nodes
   workflow.addNode('agent', agent);
 
-  // Define edges
-  workflow.addEdge(START, 'agent');
-  workflow.addEdge('agent', END);
+  // Define edges - connect start to agent, agent to end
+  (workflow as any).addEdge(START, 'agent');
+  (workflow as any).addEdge('agent', END);
 
   // Compile with memory
   const memory = new MemorySaver();
@@ -329,7 +329,7 @@ export async function POST(request: Request) {
       career: career,
       careerData: careerData,
       isInitialRoadmap: !isFollowUp,
-    }, config);
+    }, config) as any;
 
     const lastMessage = result.messages[result.messages.length - 1];
     const guidance = lastMessage.content.toString();

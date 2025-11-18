@@ -62,7 +62,7 @@ function getGeminiModel() {
   }
 
   return new ChatGoogleGenerativeAI({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.0-flash',
     apiKey: apiKey,
     temperature: 0.9,
     maxOutputTokens: 8192,
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         guidance: '❌ Please select a career path!',
         error: 'No career specified',
-      }, { status: 400 });
+      }, { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
     }
 
     console.log(`\n📍 ${isFollowUp ? 'Follow-up' : 'Initial'} | Career: ${career} | Session: ${sessionId || 'new'}`);
@@ -345,12 +345,12 @@ export async function POST(request: Request) {
       powered_by: 'Gemini 2.0 Flash + LangGraph',
       is_dynamic: true,
       session_id: config.configurable.thread_id,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 
   } catch (error: any) {
     console.error('❌ LangGraph error:', error);
     
-    let career = 'your chosen career';
+    let career = 'SDE';
     try {
       const body = await request.json();
       career = body.career || career;
@@ -358,59 +358,13 @@ export async function POST(request: Request) {
       // ignore
     }
     
+    // No hardcoded guidance. Return clean 503 to trigger retry on client.
     return NextResponse.json({
-      guidance: `⚠️ Temporary issue. Quick guidance:
-
-## 🚀 ${career} - Quick Start
-
-**Week 1 (4-6 hrs/day)**
-1. Research 10+ job postings - identify key skills
-2. Setup: IDE, Git, GitHub, development environment
-3. Enroll in 1 FREE comprehensive course
-4. Solve 15-20 easy problems daily
-5. Build & deploy first mini-project
-6. Join 2-3 communities (Discord/Reddit)
-7. Connect with 10 professionals on LinkedIn
-
-**Weeks 2-4 (5-7 hrs/day)**
-- Complete beginner course
-- Build 2-3 progressively complex projects
-- Solve 60-80 problems (mixed difficulty)
-- Start technical blog
-- Network actively
-- Update resume with new skills
-
-**Days 31-60**
-- Advanced courses/specializations
-- 2 production-grade projects
-- 150+ total problems
-- Open source contributions
-- 10+ mock interviews
-- Portfolio website live
-
-**Days 61-90**
-- Polish all work
-- Resume reviews (3+)
-- Apply to 30-50 companies
-- Network for referrals
-- Master interviews
-- Negotiate offers
-
-**Resources:**
-- Practice: LeetCode, HackerRank, Kaggle
-- Learn: Coursera, freeCodeCamp, YouTube
-- Network: LinkedIn, Discord, Meetups
-- Build: GitHub, Vercel, Netlify
-
-**Do NOW:**
-1. Search "${career} jobs" on LinkedIn
-2. Create GitHub repo with README
-3. Enroll in first course and complete Module 1
-
-Refresh to get full LLM-powered roadmap! 🚀`,
-      error: error.message,
-      career: career,
+      guidance: '⚠️ Unable to generate roadmap right now. Please try again in a moment.',
+      error: error?.message || 'Unknown error',
+      career,
       fallback: true,
-    }, { status: 200 });
+      retry_suggested: true,
+    }, { status: 503, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   }
 }

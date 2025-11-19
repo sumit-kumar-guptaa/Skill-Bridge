@@ -18,6 +18,9 @@ const DOMAIN_PROBLEM_COUNTS = {
   'DevOps': 20 // devOpsProblems
 };
 
+// Mark route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();

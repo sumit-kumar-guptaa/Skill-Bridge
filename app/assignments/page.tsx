@@ -1364,14 +1364,91 @@ export default function AssignmentsPage() {
   const [similarProblems, setSimilarProblems] = useState<any[]>([]);
   const [showSimilar, setShowSimilar] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
-  const [showSubmit, setShowSubmit] = useState(false); // Show submit button only after passing all tests
+  const [showSubmit, setShowSubmit] = useState(false);
   const diagramRef = useRef<HTMLDivElement>(null);
+
+  // Domain Lock System States
+  const [domainStatus, setDomainStatus] = useState<any>(null);
+  const [showDomainSelector, setShowDomainSelector] = useState(false);
+  const [loadingDomain, setLoadingDomain] = useState(true);
+  const [domainError, setDomainError] = useState('');
 
   useEffect(() => {
     if (isLoaded && !userId) {
       router.push('/');
     }
   }, [isLoaded, userId, router]);
+
+  // Fetch domain status (MVP: Domain Lock System)
+  useEffect(() => {
+    if (userId) {
+      fetchDomainStatus();
+    }
+  }, [userId]);
+
+  const fetchDomainStatus = async () => {
+    try {
+      setLoadingDomain(true);
+      const response = await fetch('/api/domain/status');
+      const data = await response.json();
+      
+      setDomainStatus(data);
+      
+      // If user hasn't selected a domain, show selector
+      if (!data.hasSelectedDomain) {
+        setShowDomainSelector(true);
+      } else {
+        // Set category to user's selected domain
+        setCategory(data.selectedDomain);
+      }
+    } catch (error) {
+      console.error('Error fetching domain status:', error);
+      setDomainError('Failed to load domain status');
+    } finally {
+      setLoadingDomain(false);
+    }
+  };
+
+  const handleDomainSelect = async (domain: string) => {
+    try {
+      setLoadingDomain(true);
+      setDomainError('');
+      
+      const response = await fetch('/api/domain/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setShowDomainSelector(false);
+        setCategory(domain as any);
+        await fetchDomainStatus();
+      } else {
+        setDomainError(data.error || 'Failed to select domain');
+      }
+    } catch (error) {
+      console.error('Error selecting domain:', error);
+      setDomainError('Failed to select domain');
+    } finally {
+      setLoadingDomain(false);
+    }
+  };
+
+  // Prevent switching to locked domains
+  const handleCategoryChange = (newCategory: 'SDE' | 'ML' | 'AI' | 'DevOps') => {
+    if (!domainStatus) return;
+    
+    // Check if domain is locked
+    if (domainStatus.lockedDomains?.includes(newCategory)) {
+      alert(`🔒 ${newCategory} is locked! Complete all ${domainStatus.selectedDomain} assignments first.`);
+      return;
+    }
+    
+    setCategory(newCategory);
+  };
 
   // Get current problem set based on category
   const getCurrentProblems = () => {
@@ -1717,49 +1794,93 @@ public class Main {
             <span className="text-lg font-bold text-white">Problems</span>
           </div>
           
-          {/* Category Tabs */}
+          {/* Category Tabs with Domain Lock */}
           <div className="flex items-center gap-2 bg-[#1a1f3a] rounded-lg p-1">
             <button
-              onClick={() => setCategory('SDE')}
-              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+              onClick={() => handleCategoryChange('SDE')}
+              disabled={domainStatus?.lockedDomains?.includes('SDE')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all relative ${
                 category === 'SDE' 
                   ? 'bg-orange-500 text-white shadow-lg' 
+                  : domainStatus?.lockedDomains?.includes('SDE')
+                  ? 'text-gray-600 bg-gray-900 cursor-not-allowed opacity-50'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
+              {domainStatus?.lockedDomains?.includes('SDE') && (
+                <span className="absolute -top-1 -right-1 text-xs">🔒</span>
+              )}
               📊 SDE Sheet
             </button>
             <button
-              onClick={() => setCategory('ML')}
-              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+              onClick={() => handleCategoryChange('ML')}
+              disabled={domainStatus?.lockedDomains?.includes('ML')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all relative ${
                 category === 'ML' 
                   ? 'bg-blue-500 text-white shadow-lg' 
+                  : domainStatus?.lockedDomains?.includes('ML')
+                  ? 'text-gray-600 bg-gray-900 cursor-not-allowed opacity-50'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
+              {domainStatus?.lockedDomains?.includes('ML') && (
+                <span className="absolute -top-1 -right-1 text-xs">🔒</span>
+              )}
               🤖 ML Engineer
             </button>
             <button
-              onClick={() => setCategory('AI')}
-              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+              onClick={() => handleCategoryChange('AI')}
+              disabled={domainStatus?.lockedDomains?.includes('AI')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all relative ${
                 category === 'AI' 
                   ? 'bg-purple-500 text-white shadow-lg' 
+                  : domainStatus?.lockedDomains?.includes('AI')
+                  ? 'text-gray-600 bg-gray-900 cursor-not-allowed opacity-50'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
+              {domainStatus?.lockedDomains?.includes('AI') && (
+                <span className="absolute -top-1 -right-1 text-xs">🔒</span>
+              )}
               🧠 AI Engineer
             </button>
             <button
-              onClick={() => setCategory('DevOps')}
-              className={`px-4 py-2 rounded text-sm font-semibold transition-all ${
+              onClick={() => handleCategoryChange('DevOps')}
+              disabled={domainStatus?.lockedDomains?.includes('DevOps')}
+              className={`px-4 py-2 rounded text-sm font-semibold transition-all relative ${
                 category === 'DevOps' 
                   ? 'bg-green-500 text-white shadow-lg' 
+                  : domainStatus?.lockedDomains?.includes('DevOps')
+                  ? 'text-gray-600 bg-gray-900 cursor-not-allowed opacity-50'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
+              {domainStatus?.lockedDomains?.includes('DevOps') && (
+                <span className="absolute -top-1 -right-1 text-xs">🔒</span>
+              )}
               ⚙️ DevOps
             </button>
           </div>
+
+          {/* Domain Progress Indicator */}
+          {domainStatus?.selectedDomain && domainStatus?.currentProgress && (
+            <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-lg px-4 py-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-300">
+                  {domainStatus.selectedDomain} Progress: {domainStatus.currentProgress.solved}/{domainStatus.currentProgress.required}
+                </span>
+                <span className="text-cyan-400 font-semibold">
+                  {domainStatus.currentProgress.percentage}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full transition-all"
+                  style={{ width: `${domainStatus.currentProgress.percentage}%` }}
+                />
+              </div>
+            </div>
+          )}
           
           <div className="flex items-center gap-4 text-sm">
             <button 
@@ -2268,6 +2389,121 @@ public class Main {
           </div>
         </div>
       </div>
+
+      {/* Domain Selector Modal (MVP Feature) */}
+      {showDomainSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-[#0a0e27] to-[#1a1f3a] border-2 border-cyan-500 rounded-2xl p-8 max-w-3xl w-full mx-4 shadow-2xl">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center animate-pulse">
+                  <Target className="w-10 h-10 text-white" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-2">Choose Your Learning Path</h2>
+              <p className="text-gray-400 mb-4">
+                Select ONE domain to master. You must complete ALL assignments in this domain before unlocking others.
+              </p>
+              {domainError && (
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4">
+                  <p className="text-red-400 text-sm">{domainError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* SDE Domain */}
+              <button
+                onClick={() => handleDomainSelect('SDE')}
+                disabled={loadingDomain}
+                className="group bg-gradient-to-br from-orange-500/20 to-red-500/20 hover:from-orange-500/30 hover:to-red-500/30 border-2 border-orange-500 hover:border-orange-400 rounded-xl p-6 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-5xl mb-3">📊</div>
+                <h3 className="text-xl font-bold text-white mb-2">SDE Track</h3>
+                <p className="text-sm text-gray-300 mb-3">
+                  Master data structures, algorithms, and system design for software engineering roles
+                </p>
+                <div className="flex items-center justify-center gap-2 text-orange-400">
+                  <span className="text-sm font-semibold">20 Problems</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+
+              {/* ML Domain */}
+              <button
+                onClick={() => handleDomainSelect('ML')}
+                disabled={loadingDomain}
+                className="group bg-gradient-to-br from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 border-2 border-blue-500 hover:border-blue-400 rounded-xl p-6 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-5xl mb-3">🤖</div>
+                <h3 className="text-xl font-bold text-white mb-2">ML Track</h3>
+                <p className="text-sm text-gray-300 mb-3">
+                  Learn machine learning algorithms, model training, and deployment strategies
+                </p>
+                <div className="flex items-center justify-center gap-2 text-blue-400">
+                  <span className="text-sm font-semibold">20 Problems</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+
+              {/* AI Domain */}
+              <button
+                onClick={() => handleDomainSelect('AI')}
+                disabled={loadingDomain}
+                className="group bg-gradient-to-br from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border-2 border-purple-500 hover:border-purple-400 rounded-xl p-6 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-5xl mb-3">🧠</div>
+                <h3 className="text-xl font-bold text-white mb-2">AI Track</h3>
+                <p className="text-sm text-gray-300 mb-3">
+                  Master neural networks, NLP, computer vision, and generative AI
+                </p>
+                <div className="flex items-center justify-center gap-2 text-purple-400">
+                  <span className="text-sm font-semibold">20 Problems</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+
+              {/* DevOps Domain */}
+              <button
+                onClick={() => handleDomainSelect('DevOps')}
+                disabled={loadingDomain}
+                className="group bg-gradient-to-br from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border-2 border-green-500 hover:border-green-400 rounded-xl p-6 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-5xl mb-3">⚙️</div>
+                <h3 className="text-xl font-bold text-white mb-2">DevOps Track</h3>
+                <p className="text-sm text-gray-300 mb-3">
+                  Master CI/CD, containerization, orchestration, and infrastructure as code
+                </p>
+                <div className="flex items-center justify-center gap-2 text-green-400">
+                  <span className="text-sm font-semibold">20 Problems</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+            </div>
+
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-300 mb-2">
+                    <span className="font-semibold text-cyan-400">MVP Rule:</span> Once you select a domain, you MUST complete ALL 20 assignments before other domains unlock.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    💡 Reward: Earn 500 bonus credits upon completing all domain assignments!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {loadingDomain && (
+              <div className="flex items-center justify-center gap-2 mt-4 text-cyan-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Loading...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

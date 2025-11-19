@@ -97,6 +97,18 @@ export default function CollaborativePage() {
   const [output, setOutput] = useState<string>('');
   const [socketConnected, setSocketConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Success animation state
+  const [successAnimation, setSuccessAnimation] = useState<{
+    show: boolean;
+    isWinner: boolean;
+    creditsEarned: number;
+    testsPassed: number;
+    totalTests: number;
+    message: string;
+    animationType: 'winner' | 'success';
+  } | null>(null);
 
   useEffect(() => {
     if (isLoaded && !userId) {
@@ -105,26 +117,85 @@ export default function CollaborativePage() {
   }, [isLoaded, userId, router]);
 
   useEffect(() => {
-    // Initialize Socket.IO connection
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
-    socketRef.current = io(socketUrl, {
+    // Wait for auth to load before attempting connection
+    if (!isLoaded) return;
+    if (socketRef.current?.connected) return; // Prevent duplicate init
+
+    // Prefer same-origin socket unless explicitly matching env host
+    let socketUrl: string;
+    try {
+      const envUrl = (process.env.NEXT_PUBLIC_SOCKET_URL || '').trim();
+      if (typeof window !== 'undefined') {
+        if (envUrl) {
+          try {
+            const envHost = new URL(envUrl).host;
+            const winHost = window.location.host;
+            socketUrl = envHost === winHost ? envUrl : window.location.origin;
+          } catch {
+            socketUrl = window.location.origin;
+          }
+        } else {
+          socketUrl = window.location.origin;
+        }
+      } else {
+        socketUrl = envUrl || 'http://localhost:3000';
+      }
+    } catch {
+      socketUrl = 'http://localhost:3000';
+    }
+    console.log('🔌 Attempting Socket.IO connection to:', socketUrl);
+
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
+    socketRef.current = socket;
 
-    const socket = socketRef.current;
-
-    // Connection events
+    // Basic connection lifecycle
     socket.on('connect', () => {
-      console.log('✅ Connected to server, Socket ID:', socket.id);
-      setSocketConnected(true);
+      console.log('✅ Socket connected:', socket.id);
+      setSocketConnected(true); // optimistic
+      socket.emit('handshake', { clientTime: Date.now() });
     });
 
-    socket.on('disconnect', () => {
-      console.log('❌ Disconnected from server');
+    socket.on('handshake-ack', (payload) => {
+      console.log('🤝 Handshake acknowledged by server:', payload);
+      setSocketConnected(true);
+      // Start heartbeat interval
+      const intervalId = setInterval(() => {
+        if (socket.connected) {
+          socket.emit('client-ping', { ts: Date.now() });
+        }
+      }, 15000); // every 15s
+      // Store interval for cleanup
+      heartbeatRef.current = intervalId;
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('❌ Socket disconnected. Reason:', reason);
       setSocketConnected(false);
     });
 
+    socket.on('connect_error', (err) => {
+      console.error('⚠️ Socket connect error:', err.message);
+      setSocketConnected(false);
+    });
+
+    socket.on('reconnect_attempt', (attempt) => {
+      console.log('🔄 Reconnect attempt:', attempt);
+    });
+    socket.on('reconnect_failed', () => {
+      console.error('❌ Reconnect failed');
+    });
+    socket.on('reconnect', (attempt) => {
+      console.log('✅ Reconnected after attempts:', attempt);
+      socket.emit('handshake', { clientTime: Date.now(), reconnect: true });
+    });
+
     socket.on('error', (data) => {
+      console.error('Socket error event:', data);
       alert(data.message);
     });
 
@@ -170,16 +241,32 @@ export default function CollaborativePage() {
     // Competition events
     socket.on('winner-declared', ({ winner: winnerData }) => {
       setWinner(winnerData);
-      addSystemMessage(`🏆 ${winnerData.userName} won in ${winnerData.timeToComplete.toFixed(2)}s!`);
+      addSystemMessage(`🏆 ${winnerData.userName} won in ${winnerData.timeToComplete.toFixed(2)}s! (+${winnerData.creditsEarned} credits)`);
+    });
+
+    socket.on('submission-success', ({ isWinner, creditsEarned, testsPassed, totalTests, message, animationType }) => {
+      // Show success animation
+      setSuccessAnimation({
+        show: true,
+        isWinner,
+        creditsEarned,
+        testsPassed,
+        totalTests,
+        message,
+        animationType
+      });
       
-      // Award credits to winner (localStorage for now)
-      if (winnerData.userId === userId) {
-        const progress = JSON.parse(localStorage.getItem('progress') || '{}');
-        const currentCredits = progress.credits || 0;
-        progress.credits = currentCredits + 20;
-        localStorage.setItem('progress', JSON.stringify(progress));
-        alert('🎉 You won! +20 credits');
-      }
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        setSuccessAnimation(null);
+      }, 5000);
+      
+      setIsSubmitting(false);
+    });
+
+    socket.on('submission-failed', ({ testsPassed, totalTests, message, failedTests }) => {
+      setOutput(`❌ ${message}\n\n${failedTests ? 'Failed tests:\n' + JSON.stringify(failedTests, null, 2) : ''}`);
+      setIsSubmitting(false);
     });
 
     socket.on('solution-provided', ({ solution: providedSolution }) => {
@@ -188,11 +275,13 @@ export default function CollaborativePage() {
       addSystemMessage('💡 Solution provided by the winner!');
     });
 
-    socket.on('submission-update', ({ userName, passed, isWinner }) => {
+    socket.on('submission-update', ({ userName, passed, isWinner, creditsEarned, testsPassed, totalTests }) => {
       if (isWinner) {
-        addSystemMessage(`✅ ${userName} submitted the winning solution!`);
+        addSystemMessage(`✅ ${userName} submitted the winning solution! (+${creditsEarned} credits)`);
       } else if (passed) {
-        addSystemMessage(`✅ ${userName} completed the challenge`);
+        addSystemMessage(`✅ ${userName} completed the challenge (+${creditsEarned} credits, ${testsPassed}/${totalTests} tests)`);
+      } else {
+        addSystemMessage(`❌ ${userName} failed (${testsPassed}/${totalTests} tests passed)`);
       }
     });
 
@@ -202,9 +291,13 @@ export default function CollaborativePage() {
     });
 
     return () => {
-      socket.disconnect();
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      if (socket.connected) socket.disconnect();
     };
-  }, []); // Remove userId and user dependencies
+  }, [isLoaded]);
 
   const addSystemMessage = (content: string) => {
     setMessages(prev => [...prev, {
@@ -417,10 +510,10 @@ export default function CollaborativePage() {
               <div className="bg-[#0a0e27] border border-gray-700 rounded-lg p-4 mb-6">
                 <h3 className="text-sm font-semibold text-cyan-400 mb-2">Rules:</h3>
                 <ul className="text-xs text-gray-400 space-y-1">
-                  <li>• First to solve correctly wins +20 credits</li>
-                  <li>• Others receive the winning solution</li>
-                  <li>• Real-time code synchronization</li>
-                  <li>• Random problem selection</li>
+                  <li>• First correct solution wins <span className="text-yellow-400 font-semibold">+100 credits</span></li>
+                  <li>• Other successful solutions earn <span className="text-green-400 font-semibold">+50 credits</span></li>
+                  <li>• Real-time code & chat synchronization</li>
+                  <li>• Random problem selection per room</li>
                 </ul>
               </div>
               <button
@@ -707,6 +800,76 @@ export default function CollaborativePage() {
           </div>
         </div>
       </div>
+
+      {/* Success Animation Modal */}
+      {successAnimation && successAnimation.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className={`relative ${successAnimation.animationType === 'winner' ? 'bg-gradient-to-br from-yellow-500/90 to-orange-600/90' : 'bg-gradient-to-br from-green-500/90 to-cyan-600/90'} rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform animate-scaleIn`}>
+            {/* Confetti Effect for Winner */}
+            {successAnimation.animationType === 'winner' && (
+              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                {[...Array(30)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute animate-confetti"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: '-10%',
+                      animationDelay: `${Math.random() * 2}s`,
+                      animationDuration: `${2 + Math.random() * 2}s`
+                    }}
+                  >
+                    <div className="w-2 h-2 rounded-full" style={{
+                      backgroundColor: ['#FFD700', '#FFA500', '#FF6347', '#00CED1', '#9370DB'][Math.floor(Math.random() * 5)]
+                    }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="relative z-10 text-center">
+              {/* Icon */}
+              <div className="mb-4 flex justify-center">
+                {successAnimation.animationType === 'winner' ? (
+                  <div className="w-20 h-20 bg-yellow-300 rounded-full flex items-center justify-center animate-bounce">
+                    <Trophy className="w-12 h-12 text-yellow-700" />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 bg-green-300 rounded-full flex items-center justify-center animate-bounce">
+                    <CheckCircle className="w-12 h-12 text-green-700" />
+                  </div>
+                )}
+              </div>
+
+              {/* Message */}
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {successAnimation.message}
+              </h2>
+
+              {/* Credits Earned */}
+              <div className="text-6xl font-black text-white mb-4 animate-pulse">
+                +{successAnimation.creditsEarned}
+                <span className="text-2xl ml-2">credits</span>
+              </div>
+
+              {/* Test Results */}
+              <div className="bg-white/20 rounded-lg p-4 mb-4">
+                <p className="text-white font-semibold">
+                  Tests Passed: {successAnimation.testsPassed}/{successAnimation.totalTests}
+                </p>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setSuccessAnimation(null)}
+                className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

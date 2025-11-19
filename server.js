@@ -97,14 +97,8 @@ async function setRoomWinner(roomId, userId) {
       },
     });
 
-    // Award credits to winner
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        credits: { increment: 20 },
-        competitionsWon: { increment: 1 },
-      },
-    });
+    // Note: Credits are now awarded in submit-solution handler (100 for winner)
+    console.log(`✅ Room ${roomId} winner set to ${userId}`);
   } catch (error) {
     console.error('Error setting room winner:', error);
   }
@@ -181,6 +175,24 @@ app.prepare().then(() => {
 
   io.on('connection', (socket) => {
     console.log('✅ Client connected:', socket.id);
+
+    // Handshake / connectivity verification
+    socket.on('handshake', (data) => {
+      socket.emit('handshake-ack', {
+        receivedAt: new Date().toISOString(),
+        serverId: socket.id,
+        echo: data || null
+      });
+    });
+
+    // Heartbeat ping/pong for client connectivity monitoring
+    socket.on('client-ping', (payload) => {
+      socket.emit('server-pong', {
+        ts: Date.now(),
+        serverId: socket.id,
+        echo: payload?.ts || null
+      });
+    });
 
     // Create Competition Room
     socket.on('create-room', async ({ problemId, userId, userName }) => {
@@ -279,59 +291,245 @@ app.prepare().then(() => {
         return;
       }
 
-      const solution = {
-        userId,
-        code,
-        language,
-        submittedAt: Date.now(),
-        passed: testResults.allPassed,
-      };
-
-      room.solutions.set(userId, solution);
-
-      // Check if this is the first correct solution
-      if (testResults.allPassed && !room.winner) {
-        room.winner = userId;
-        participant.completed = true;
-        participant.completedAt = Date.now();
-
-        // Save winner to database
-        await setRoomWinner(roomId, userId);
-
-        // Winner gets credits
-        io.to(roomId).emit('winner-declared', {
-          winner: {
-            userId,
-            userName: participant.userName,
-            timeToComplete: (Date.now() - room.startTime) / 1000,
-          },
+      try {
+        // Get problemId from room's database record
+        const roomData = await prisma.competitionRoom.findUnique({
+          where: { id: roomId },
+          select: { problemId: true }
         });
-        
-        await saveRoomMessage(roomId, null, 'System', `🏆 ${participant.userName} won the competition!`, true);
-        console.log(`🏆 ${participant.userName} won room ${roomId}`);
-      } else if (testResults.allPassed) {
-        participant.completed = true;
-        participant.completedAt = Date.now();
-        
-        // Others get solution from winner
-        const winnerSolution = room.solutions.get(room.winner);
-        if (winnerSolution) {
-          socket.emit('solution-provided', {
-            solution: {
-              code: winnerSolution.code,
-              language: winnerSolution.language,
+
+        const problemId = roomData?.problemId;
+        // Derive test stats robustly
+        const resultsArray = Array.isArray(testResults?.results) ? testResults.results : [];
+        const totalTests = testResults.totalTests || resultsArray.length;
+        const passedTests = testResults.passedTests || resultsArray.filter(r => r.passed).length;
+        const allPassed = typeof testResults.allPassed === 'boolean' ? testResults.allPassed : (totalTests > 0 && passedTests === totalTests);
+
+        // 1. Create Submission record in database
+        const submission = await prisma.submission.create({
+          data: {
+            userId,
+            problemId: problemId || 1, // Fallback to problem 1 if not set
+            code,
+            language,
+            status: allPassed ? 'Accepted' : 'Failed',
+            runtime: testResults.runtime || null,
+            memory: testResults.memory || null,
+            testResults: {
+              allPassed,
+              passedTests,
+              totalTests,
+              results: resultsArray
+            },
+            isAccepted: allPassed
+          }
+        });
+
+        console.log(`✅ Submission saved: ID=${submission.id}, User=${userId}, Passed=${allPassed}`);
+
+        // Save to in-memory room state
+        const solution = {
+          userId,
+          code,
+          language,
+          submittedAt: Date.now(),
+          passed: allPassed,
+          passedTests,
+          totalTests
+        };
+        room.solutions.set(userId, solution);
+
+        // 2. Calculate credits based on outcome
+        let creditsEarned = 0;
+        let isWinner = false;
+
+        // Check if this is the first correct solution (WINNER)
+        if (allPassed && !room.winner) {
+          room.winner = userId;
+          participant.completed = true;
+          participant.completedAt = Date.now();
+          isWinner = true;
+          creditsEarned = 100; // Winner gets 100 credits
+
+          // Save winner to database
+          await setRoomWinner(roomId, userId);
+
+          // Update user stats for winning
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              credits: { increment: creditsEarned },
+              totalSolved: { increment: 1 },
+              totalCompetitions: { increment: 1 },
+              competitionsWon: { increment: 1 }
+            }
+          });
+
+          // Create/Update UserProgress for winner
+          if (problemId) {
+            await prisma.userProgress.upsert({
+              where: {
+                userId_problemId: { userId, problemId }
+              },
+              update: {
+                language,
+                executionTime: testResults.runtime || null,
+                creditsEarned: 100
+              },
+              create: {
+                userId,
+                problemId,
+                language,
+                executionTime: testResults.runtime || null,
+                creditsEarned: 100
+              }
+            });
+          }
+
+          // Announce winner to all participants
+          io.to(roomId).emit('winner-declared', {
+            winner: {
+              userId,
+              userName: participant.userName,
+              timeToComplete: (Date.now() - room.startTime) / 1000,
+              creditsEarned: 100
             },
           });
-        }
-      }
 
-      // Broadcast submission update
-      io.to(roomId).emit('submission-update', {
-        userId,
-        userName: participant.userName,
-        passed: testResults.allPassed,
-        isWinner: room.winner === userId,
-      });
+          // Emit success animation for winner
+          socket.emit('submission-success', {
+            isWinner: true,
+            creditsEarned: 100,
+            testsPassed: passedTests,
+            totalTests,
+            message: '🏆 YOU WON! First to solve!',
+            animationType: 'winner' // Trigger confetti animation
+          });
+
+          await saveRoomMessage(roomId, null, 'System', `🏆 ${participant.userName} won the competition!`, true);
+          console.log(`🏆 ${participant.userName} won room ${roomId} - Earned 100 credits`);
+
+        } else if (allPassed) {
+          // Non-winner but passed all tests
+          participant.completed = true;
+          participant.completedAt = Date.now();
+          creditsEarned = 50; // Non-winners get 50 credits for solving
+
+          // Update user stats for completing problem
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              credits: { increment: creditsEarned },
+              totalSolved: { increment: 1 }
+            }
+          });
+
+          // Create/Update UserProgress
+          if (problemId) {
+            await prisma.userProgress.upsert({
+              where: {
+                userId_problemId: { userId, problemId }
+              },
+              update: {
+                language,
+                executionTime: testResults.runtime || null,
+                creditsEarned: 50
+              },
+              create: {
+                userId,
+                problemId,
+                language,
+                executionTime: testResults.runtime || null,
+                creditsEarned: 50
+              }
+            });
+          }
+
+          // Emit success animation for completion
+          socket.emit('submission-success', {
+            isWinner: false,
+            creditsEarned: 50,
+            testsPassed: passedTests,
+            totalTests,
+            message: '✅ All tests passed!',
+            animationType: 'success' // Trigger celebration animation
+          });
+
+          console.log(`✅ ${participant.userName} completed problem in room ${roomId} - Earned 50 credits`);
+
+          // Provide winner's solution if available
+          const winnerSolution = room.solutions.get(room.winner);
+          if (winnerSolution) {
+            socket.emit('solution-provided', {
+              solution: {
+                code: winnerSolution.code,
+                language: winnerSolution.language,
+              },
+            });
+          }
+        } else {
+          // Failed submission - no credits
+          socket.emit('submission-failed', {
+            testsPassed: passedTests,
+            totalTests,
+            message: `${passedTests}/${totalTests} tests passed`,
+            failedTests: resultsArray.filter(r => !r.passed).map((r, i) => ({ index: i, expected: r.expected, output: r.output || r.error }))
+          });
+
+          console.log(`❌ ${participant.userName} failed submission in room ${roomId} - ${passedTests}/${totalTests} tests passed`);
+        }
+
+        // Update leaderboard cache if credits were earned
+        if (creditsEarned > 0) {
+          const updatedUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+              credits: true,
+              totalSolved: true,
+              competitionsWon: true,
+              currentStreak: true
+            }
+          });
+
+          if (updatedUser) {
+            await prisma.leaderboardCache.upsert({
+              where: { userId },
+              update: {
+                totalCredits: updatedUser.credits,
+                problemsSolved: updatedUser.totalSolved,
+                competitionsWon: updatedUser.competitionsWon,
+                currentStreak: updatedUser.currentStreak,
+                updatedAt: new Date()
+              },
+              create: {
+                userId,
+                totalCredits: updatedUser.credits,
+                problemsSolved: updatedUser.totalSolved,
+                competitionsWon: updatedUser.competitionsWon,
+                currentStreak: updatedUser.currentStreak
+              }
+            });
+          }
+        }
+
+        // Broadcast submission update to all room participants
+        io.to(roomId).emit('submission-update', {
+          userId,
+          userName: participant.userName,
+          passed: allPassed,
+          isWinner,
+          creditsEarned,
+          testsPassed: passedTests,
+          totalTests
+        });
+
+      } catch (error) {
+        console.error(`❌ Error processing submission for user ${userId} in room ${roomId}:`, error);
+        socket.emit('error', { 
+          message: 'Failed to process submission. Please try again.',
+          details: error.message 
+        });
+      }
     });
 
     // Chat Message

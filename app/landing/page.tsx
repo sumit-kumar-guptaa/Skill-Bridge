@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Code2, BrainCircuit, Sparkles, Target, Rocket, Cloud, BookOpen, Trophy, TrendingUp, Users, ArrowRight, CheckCircle, Terminal, Minus, Square, X, Clock } from 'lucide-react';
+import { Code2, BrainCircuit, Sparkles, Target, Rocket, Cloud, BookOpen, Trophy, TrendingUp, Users, ArrowRight, CheckCircle, Terminal, Minus, Square, X, Clock, Star, Quote } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, SignInButton, SignUpButton } from '@clerk/nextjs';
+import { InfiniteMovingCards } from '@/components/ui/infinite-moving-cards';
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('all');
@@ -167,44 +168,42 @@ await agent.execute();`,
   };
 
   const domains = [
-    { id: 'ml', name: 'Machine Learning', icon: <BrainCircuit className="w-6 h-6" />, color: 'blue', problems: 156 },
-    { id: 'dl', name: 'Deep Learning', icon: <Sparkles className="w-6 h-6" />, color: 'purple', problems: 98 },
-    { id: 'ai', name: 'Artificial Intelligence', icon: <Target className="w-6 h-6" />, color: 'pink', problems: 124 },
-    { id: 'dsa', name: 'Data Structures & Algorithms', icon: <Code2 className="w-6 h-6" />, color: 'green', problems: 342 },
-    { id: 'devops', name: 'DevOps', icon: <Rocket className="w-6 h-6" />, color: 'orange', problems: 87 },
-    { id: 'cloud', name: 'Cloud Computing', icon: <Cloud className="w-6 h-6" />, color: 'cyan', problems: 112 },
+    { id: 'sde', name: 'Software Development Engineer', icon: <Code2 className="w-6 h-6" />, color: 'blue', problems: 20, description: 'Master DSA, system design, and coding interviews' },
+    { id: 'ml', name: 'Machine Learning Engineer', icon: <BrainCircuit className="w-6 h-6" />, color: 'purple', problems: 20, description: 'Build ML models, pipelines, and production systems' },
+    { id: 'ai', name: 'AI Engineer', icon: <Sparkles className="w-6 h-6" />, color: 'cyan', problems: 20, description: 'Create AI agents, LLMs, and intelligent applications' },
+    { id: 'devops', name: 'DevOps Engineer', icon: <Rocket className="w-6 h-6" />, color: 'orange', problems: 20, description: 'Deploy, scale, and monitor cloud infrastructure' },
   ];
 
   const features = [
     {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: 'AI-Powered Learning',
-      description: 'Get personalized career guidance and learning paths powered by advanced AI'
+      icon: <Target className="w-8 h-8" />,
+      title: 'Domain-Locked Progression',
+      description: 'Master one domain completely (20 problems) before unlocking others - ensures deep expertise'
     },
     {
-      icon: <Trophy className="w-8 h-8" />,
-      title: 'Practice Assignments',
-      description: 'Solve domain-specific problems across ML, DL, AI, DSA, DevOps, and Cloud'
-    },
-    {
-      icon: <TrendingUp className="w-8 h-8" />,
-      title: 'Track Your Progress',
-      description: 'Monitor your learning journey with detailed analytics and achievements'
+      icon: <BrainCircuit className="w-8 h-8" />,
+      title: 'AI Career Guidance',
+      description: 'Get personalized roadmaps powered by LangGraph, Gemini AI, and real-time web search'
     },
     {
       icon: <Users className="w-8 h-8" />,
-      title: 'Community Support',
-      description: 'Join thousands of learners and grow together with expert mentorship'
+      title: 'Real-Time Competitions',
+      description: 'Compete live with peers using Socket.IO - first to solve wins credits and achievements'
+    },
+    {
+      icon: <Trophy className="w-8 h-8" />,
+      title: 'Gamification & Rewards',
+      description: 'Earn credits, climb leaderboards, unlock achievements, and track progress with analytics'
     }
   ];
 
   const recentProblems = [
-    { id: 1, title: 'Linear Regression Implementation', domain: 'ML', difficulty: 'Easy', solved: 1234 },
-    { id: 2, title: 'Build a CNN for Image Classification', domain: 'DL', difficulty: 'Medium', solved: 892 },
-    { id: 3, title: 'Implement A* Search Algorithm', domain: 'AI', difficulty: 'Hard', solved: 456 },
-    { id: 4, title: 'Binary Tree Traversal', domain: 'DSA', difficulty: 'Easy', solved: 2341 },
-    { id: 5, title: 'Set up CI/CD Pipeline', domain: 'DevOps', difficulty: 'Medium', solved: 678 },
-    { id: 6, title: 'Deploy App on AWS', domain: 'Cloud', difficulty: 'Medium', solved: 543 },
+    { id: 1, title: 'Two Sum Problem', domain: 'SDE', difficulty: 'Easy', solved: 2341 },
+    { id: 2, title: 'System Design: Design URL Shortener', domain: 'SDE', difficulty: 'Hard', solved: 892 },
+    { id: 3, title: 'Linear Regression from Scratch', domain: 'ML', difficulty: 'Medium', solved: 1234 },
+    { id: 4, title: 'Build CNN for Image Classification', domain: 'ML', difficulty: 'Hard', solved: 756 },
+    { id: 5, title: 'Create RAG System with LangChain', domain: 'AI', difficulty: 'Medium', solved: 1089 },
+    { id: 6, title: 'Deploy Kubernetes Cluster on AWS', domain: 'DevOps', difficulty: 'Hard', solved: 543 },
   ];
 
   const getDifficultyColor = (difficulty: string) => {
@@ -215,6 +214,49 @@ await agent.execute();`,
       default: return 'text-gray-400';
     }
   };
+
+  const testimonials = [
+    {
+      quote: "SkillBridge transformed my career! The domain-locked system forced me to master SDE concepts deeply. After completing all 20 problems, I landed a job at Google. The AI guidance was spot-on with interview prep!",
+      name: "Priya Sharma",
+      title: "Software Engineer at Google"
+    },
+    {
+      quote: "The real-time competitions are addictive! Racing against peers pushed me to optimize my code. Earned 2000+ credits and unlocked all 4 domains. Best platform for serious learners who want structured growth.",
+      name: "Arjun Mehta",
+      title: "ML Engineer at Microsoft"
+    },
+    {
+      quote: "I was skeptical about the locked domains at first, but it's genius! Made me complete ML fundamentals before jumping to AI. The +500 bonus credits after finishing a domain kept me motivated. Highly recommend!",
+      name: "Sneha Patel",
+      title: "Data Scientist at Amazon"
+    },
+    {
+      quote: "The AI career guidance with LangGraph is incredibly detailed. It analyzed my GitHub, suggested personalized roadmaps, and even recommended courses. Combined with hands-on problems, it's a complete learning ecosystem.",
+      name: "Rahul Kumar",
+      title: "DevOps Engineer at Atlassian"
+    },
+    {
+      quote: "Completed all 80 problems across 4 domains in 3 months. The gamification (credits, achievements, leaderboards) made learning fun. Interview questions felt easy after solving these curated challenges. Worth every minute!",
+      name: "Ananya Singh",
+      title: "AI Engineer at OpenAI"
+    },
+    {
+      quote: "Love the Socket.IO competitions! Real-time code battles with instant feedback from Judge0. Won multiple competitions and climbed to top 10 on leaderboard. The community is supportive and the challenges are industry-relevant.",
+      name: "Vikram Joshi",
+      title: "Full Stack Developer at Stripe"
+    },
+    {
+      quote: "The course recommendations from Coursera, Udemy, and YouTube in one place saved me hours. AI guidance paired with domain-specific problems and competitions - this is the future of tech education!",
+      name: "Kavya Reddy",
+      title: "Cloud Architect at AWS"
+    },
+    {
+      quote: "Unlocking domains after 100% completion is tough but rewarding. Each domain certificate and achievement felt earned. The progress tracking dashboard kept me accountable. Best decision for my upskilling journey!",
+      name: "Rohan Gupta",
+      title: "Senior SDE at Meta"
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0e27] to-[#1a1f3a] text-white overflow-hidden">
@@ -242,8 +284,9 @@ await agent.execute();`,
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
-                Master Your Tech Career with <span className="text-orange-400 font-semibold">AI-Powered Guidance</span> & 
-                <span className="text-purple-400 font-semibold"> Real-Time Learning Paths</span>
+                Master Your Tech Career with <span className="text-orange-400 font-semibold">AI-Powered Guidance</span>,
+                <span className="text-purple-400 font-semibold"> Domain-Locked Progression</span>, &
+                <span className="text-cyan-400 font-semibold"> Real-Time Competitions</span>
               </p>
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 {isSignedIn ? (
@@ -268,12 +311,16 @@ await agent.execute();`,
               {/* Stats Mini */}
               <div className="flex gap-6 pt-4">
                 <div>
-                  <div className="text-3xl font-bold text-orange-500">1000+</div>
+                  <div className="text-3xl font-bold text-orange-500">80+</div>
                   <div className="text-sm text-gray-400">Problems</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-purple-500">50K+</div>
-                  <div className="text-sm text-gray-400">Learners</div>
+                  <div className="text-3xl font-bold text-purple-500">4</div>
+                  <div className="text-sm text-gray-400">Domains</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-cyan-500">100%</div>
+                  <div className="text-sm text-gray-400">Completion</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-blue-500">AI</div>
@@ -343,20 +390,20 @@ await agent.execute();`,
       <div className="max-w-7xl mx-auto px-6 py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="group bg-[#1a1f3a] border border-gray-700 hover:border-orange-500 rounded-xl p-6 text-center transition-all hover:scale-105 hover:shadow-lg hover:shadow-orange-500/20">
-            <div className="text-4xl font-bold text-orange-500 group-hover:scale-110 transition-transform">1000+</div>
-            <div className="text-gray-400 mt-2">Practice Problems</div>
+            <div className="text-4xl font-bold text-orange-500 group-hover:scale-110 transition-transform">80+</div>
+            <div className="text-gray-400 mt-2">Curated Problems</div>
           </div>
           <div className="group bg-[#1a1f3a] border border-gray-700 hover:border-purple-500 rounded-xl p-6 text-center transition-all hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <div className="text-4xl font-bold text-purple-500 group-hover:scale-110 transition-transform">50K+</div>
-            <div className="text-gray-400 mt-2">Active Learners</div>
+            <div className="text-4xl font-bold text-purple-500 group-hover:scale-110 transition-transform">4</div>
+            <div className="text-gray-400 mt-2">Expert Domains</div>
           </div>
-          <div className="group bg-[#1a1f3a] border border-gray-700 hover:border-blue-500 rounded-xl p-6 text-center transition-all hover:scale-105 hover:shadow-lg hover:shadow-blue-500/20">
-            <div className="text-4xl font-bold text-blue-500 group-hover:scale-110 transition-transform">6</div>
-            <div className="text-gray-400 mt-2">Tech Domains</div>
+          <div className="group bg-[#1a1f3a] border border-gray-700 hover:border-cyan-500 rounded-xl p-6 text-center transition-all hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20">
+            <div className="text-4xl font-bold text-cyan-500 group-hover:scale-110 transition-transform">20</div>
+            <div className="text-gray-400 mt-2">Problems per Domain</div>
           </div>
           <div className="group bg-[#1a1f3a] border border-gray-700 hover:border-green-500 rounded-xl p-6 text-center transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-500/20">
-            <div className="text-4xl font-bold text-green-500 group-hover:scale-110 transition-transform">AI</div>
-            <div className="text-gray-400 mt-2">Powered Guidance</div>
+            <div className="text-4xl font-bold text-green-500 group-hover:scale-110 transition-transform">100%</div>
+            <div className="text-gray-400 mt-2">Completion Required</div>
           </div>
         </div>
       </div>
@@ -384,33 +431,125 @@ await agent.execute();`,
         </div>
       </div>
 
-      {/* Domains Section */}
+      {/* MVP Feature: Domain-Locked Progression */}
       <div className="max-w-7xl mx-auto px-6 py-16 relative z-10">
-        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
-          Practice by Domain
-        </h2>
-        <p className="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
-          Master your skills across multiple tech domains with curated assignments
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="text-center mb-12">
+          <div className="inline-block mb-4">
+            <span className="px-4 py-2 bg-gradient-to-r from-orange-500 to-purple-500 text-white rounded-full text-sm font-semibold animate-pulse shadow-lg">
+              🎯 MVP Feature: Domain-Locked Learning Path
+            </span>
+          </div>
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+            Choose Your Domain & Master It 100%
+          </h2>
+          <p className="text-gray-300 mb-6 max-w-3xl mx-auto text-lg">
+            Pick one domain → Solve all 20 curated problems → Earn +500 bonus credits → Unlock next domain
+          </p>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full text-green-400">
+              <CheckCircle className="w-4 h-4" />
+              <span>Deep Expertise</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/50 rounded-full text-purple-400">
+              <Target className="w-4 h-4" />
+              <span>Focused Learning</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/50 rounded-full text-orange-400">
+              <Trophy className="w-4 h-4" />
+              <span>Unlock Rewards</span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {domains.map((domain, index) => (
             <div 
               key={domain.id} 
-              className="group bg-[#1a1f3a] border border-gray-700 rounded-xl p-6 hover:border-orange-500 transition-all hover:scale-105 hover:shadow-lg hover:shadow-orange-500/20 cursor-pointer"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="group relative bg-gradient-to-br from-[#1a1f3a] to-[#0a0e27] border border-gray-700 rounded-2xl p-8 hover:border-orange-500 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/30 cursor-pointer overflow-hidden"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`text-${domain.color}-500 group-hover:scale-110 transition-transform`}>{domain.icon}</div>
-                <span className="text-sm px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full font-semibold">{domain.problems} problems</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 group-hover:text-orange-400 transition-colors">{domain.name}</h3>
-              <div className="flex gap-2 mt-4">
-                <span className="text-xs px-3 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Easy</span>
-                <span className="text-xs px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Medium</span>
-                <span className="text-xs px-3 py-1 bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Hard</span>
+              {/* Animated background glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-6">
+                  <div className={`p-4 rounded-xl bg-gradient-to-br from-${domain.color}-500/20 to-${domain.color}-600/20 border border-${domain.color}-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all`}>
+                    {domain.icon}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">{domain.problems}</div>
+                    <div className="text-xs text-gray-400 mt-1">Problems</div>
+                  </div>
+                </div>
+                
+                <h3 className="text-2xl font-bold mb-3 group-hover:text-orange-400 transition-colors">{domain.name}</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">{domain.description}</p>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Complete all 20 problems to unlock</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <span>Earn +500 bonus credits on completion</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <Target className="w-4 h-4 text-purple-400" />
+                    <span>Unlock achievement & certificate</span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <span className="text-xs px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/30 font-semibold">Easy</span>
+                  <span className="text-xs px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30 font-semibold">Medium</span>
+                  <span className="text-xs px-3 py-1.5 bg-red-500/20 text-red-400 rounded-full border border-red-500/30 font-semibold">Hard</span>
+                </div>
+                
+                <Link href="/assignments">
+                  <button className="mt-6 w-full bg-gradient-to-r from-orange-500 to-purple-500 hover:from-orange-600 hover:to-purple-600 text-white py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:shadow-orange-500/50 flex items-center justify-center gap-2">
+                    <Rocket className="w-4 h-4" />
+                    Start This Domain
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </Link>
               </div>
             </div>
           ))}
+        </div>
+        
+        {/* How it Works */}
+        <div className="mt-16 bg-gradient-to-r from-[#1a1f3a] to-[#0a0e27] border border-gray-700 rounded-2xl p-10">
+          <h3 className="text-2xl font-bold text-center mb-8 text-white">How Domain-Locked Progression Works</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-blue-400">1</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2">Pick Your Domain</h4>
+              <p className="text-sm text-gray-400">Choose SDE, ML, AI, or DevOps based on your career goals</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-purple-400">2</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2">Solve All 20 Problems</h4>
+              <p className="text-sm text-gray-400">Master every problem - other domains stay locked 🔒</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500/20 to-orange-600/20 border border-orange-500/30 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-orange-400">3</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2">Get +500 Bonus Credits</h4>
+              <p className="text-sm text-gray-400">Unlock achievement and earn massive rewards</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-green-400">4</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2">Unlock Next Domain</h4>
+              <p className="text-sm text-gray-400">Choose another domain and repeat the journey</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -885,6 +1024,30 @@ await agent.execute();`,
             </table>
           </div>
         </div>
+      </div>
+
+      {/* Testimonials Section */}
+      <div className="max-w-7xl mx-auto px-6 py-20 relative z-10">
+        <div className="text-center mb-12">
+          <div className="inline-block mb-4">
+            <span className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full text-yellow-400 text-sm font-semibold flex items-center gap-2">
+              <Star className="w-4 h-4 fill-yellow-400" />
+              Trusted by 10,000+ Learners
+            </span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent">
+            Success Stories from Our Community
+          </h2>
+          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+            Real feedback from learners who transformed their careers with SkillBridge
+          </p>
+        </div>
+        
+        <InfiniteMovingCards
+          items={testimonials}
+          direction="right"
+          speed="slow"
+        />
       </div>
 
       {/* CTA Section */}

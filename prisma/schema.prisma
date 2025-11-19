@@ -26,6 +26,11 @@ model User {
   maxStreak         Int      @default(0) @map("max_streak")
   credits           Int      @default(0)
   
+  // Domain Lock System (MVP Feature)
+  selectedDomain    String?  @map("selected_domain") // SDE, ML, AI, DevOps
+  domainStartedAt   DateTime? @map("domain_started_at")
+  completedDomains  String[] @default([]) @map("completed_domains") // Array of completed domains
+  
   // Competition stats
   totalCompetitions Int      @default(0) @map("total_competitions")
   competitionsWon   Int      @default(0) @map("competitions_won")
@@ -52,6 +57,7 @@ model Problem {
   title            String   @db.VarChar(255)
   slug             String   @unique @db.VarChar(255)
   difficulty       String   @db.VarChar(20)
+  domain           String   @default("SDE") @db.VarChar(20) // SDE, ML, AI, DevOps
   description      String   @db.Text
   examples         Json?
   constraints      String[]

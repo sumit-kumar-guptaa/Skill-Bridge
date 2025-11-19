@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "build": "next build",
+    "build": "npm run clean && next build",
+    "clean": "node -e \"const fs = require('fs'); const path = '.next'; if (fs.existsSync(path)) fs.rmSync(path, {recursive: true, force: true});\"",
     "start": "node server.js",
     "lint": "next lint",
     "db:init": "tsx scripts/init-db.ts",
@@ -23,6 +24,7 @@
     "@prisma/client": "^6.19.0",
     "@prisma/extension-accelerate": "^2.0.2",
     "@tavily/core": "^0.5.12",
+    "clsx": "^2.1.1",
     "jspdf": "^3.0.3",
     "langchain": "^1.0.3",
     "lucide-react": "^0.446.0",
@@ -32,7 +34,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^20",
